@@ -3,28 +3,30 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Utensils, Clock, MapPin, Star } from 'lucide-react'
+import { Utensils, Clock, MapPin, Star, Coffee, Truck } from 'lucide-react'
 
 const businesses = [
   {
     slug: 'midway-restaurant',
-    name: 'Midway Restaurant',
-    description: 'Classic Australian cuisine with outback hospitality. Perfect for travellers looking for hearty meals and friendly service.',
-    hours: '6:00 AM - 9:00 PM',
+    name: 'Midway Roadhouse',
+    description: 'Coffee, breakfast, lunch and dinner. Perfect pit-stop for truckies and travellers. Your meal will be ready when you pull in.',
+    hours: '6AM - 9PM',
     address: 'Flinders Highway, Richmond QLD',
     rating: 4.5,
-    specialties: ['Breakfast', 'Steaks', 'Burgers', 'Australian Classics'],
-    color: 'terracotta'
+    specialties: ['Coffee', 'Breakfast', 'Burgers', 'Steaks'],
+    color: 'terracotta',
+    prepTime: '5-15 min'
   },
   {
     slug: 'mudhut-pub',
-    name: 'Mudhut Pub',
-    description: 'Authentic outback pub experience with cold drinks, pub classics, and live entertainment. The heart of Richmond social life.',
-    hours: '11:00 AM - Late',
+    name: 'Mud Hut Pub',
+    description: 'Cold beers, pub classics, and outback hospitality. Order ahead and skip the queue on busy nights.',
+    hours: '10AM - Late',
     address: 'Goldring Street, Richmond QLD',
     rating: 4.7,
-    specialties: ['Pub Meals', 'Steaks', 'Seafood', 'Cold Beer'],
-    color: 'sage'
+    specialties: ['Pub Meals', 'Parmi', 'Steaks', 'Cold Beer'],
+    color: 'sage',
+    prepTime: '15-20 min'
   }
 ]
 
@@ -38,9 +40,13 @@ export default function OrderPage() {
         <section className="bg-gradient-to-b from-terracotta/10 to-background py-12 lg:py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto">
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Pre-Order Your Meal</h1>
+              <div className="inline-flex items-center gap-2 rounded-full bg-sage/10 px-4 py-1.5 text-sm font-medium text-sage mb-4">
+                <Truck className="h-4 w-4" />
+                Perfect for Truckies &amp; Travellers
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Order Before You Arrive</h1>
               <p className="mt-4 text-lg text-muted-foreground">
-                Skip the wait! Order ahead from Richmond&apos;s best restaurants and have your meal ready when you arrive.
+                Skip the queue. Your coffee and meal will be ready when you pull in.
               </p>
             </div>
           </div>
@@ -105,6 +111,9 @@ export default function OrderPage() {
                       <span className="flex items-center gap-1.5">
                         <Clock className="h-4 w-4" />
                         {business.hours}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-sage/10 px-2.5 py-0.5 text-xs font-medium text-sage">
+                        Ready in {business.prepTime}
                       </span>
                     </div>
                     

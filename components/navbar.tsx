@@ -16,10 +16,10 @@ import { MapPin, Menu, X, User, LogOut, LayoutDashboard, ShoppingBag, Bell } fro
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const navLinks = [
-  { href: '/order', label: 'Pre-Order' },
-  { href: '/attractions', label: 'Attractions' },
+  { href: '/order', label: 'Order Ahead' },
+  { href: '/attractions', label: 'Explore' },
   { href: '/events', label: 'Events' },
-  { href: '/assistant', label: 'AI Assistant' },
+  { href: '/assistant', label: 'Ask AI' },
 ]
 
 interface Profile {

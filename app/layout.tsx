@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'RuralsyncAI - Connect with Richmond, QLD',
-  description: 'Pre-order meals, discover attractions, and explore events in Richmond, Queensland. Your gateway to Australia\'s outback hospitality.',
+  title: 'RuralsyncAI - Order Before You Arrive | Richmond, QLD',
+  description: 'Skip the queue in the outback. Pre-order coffee, meals and snacks from Midway Roadhouse and Mud Hut. Perfect for truckies, travellers and locals in Richmond, Queensland.',
   generator: 'v0.app',
   icons: {
     icon: [
