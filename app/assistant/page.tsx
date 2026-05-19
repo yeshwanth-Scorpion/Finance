@@ -48,6 +48,9 @@ export default function AssistantPage() {
       .join('')
   }
 
+  // Safely get messages array
+  const safeMessages = messages || []
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -79,7 +82,7 @@ export default function AssistantPage() {
             
             <CardContent className="flex-1 p-0 flex flex-col">
               <ScrollArea className="flex-1 p-4">
-                {messages.length === 0 ? (
+                {safeMessages.length === 0 ? (
                   <div className="space-y-6">
                     {/* Welcome Message */}
                     <div className="flex gap-3">
@@ -121,7 +124,7 @@ export default function AssistantPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {messages.map((message) => (
+                    {safeMessages.map((message) => (
                       <div key={message.id} className="flex gap-3">
                         <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                           message.role === 'assistant' 
@@ -173,7 +176,7 @@ export default function AssistantPage() {
                   />
                   <Button 
                     type="submit" 
-                    disabled={isLoading || !input.trim()}
+                    disabled={isLoading || !input?.trim()}
                     className="bg-terracotta hover:bg-terracotta/90"
                   >
                     <Send className="h-4 w-4" />
