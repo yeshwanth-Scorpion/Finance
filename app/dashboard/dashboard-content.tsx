@@ -147,6 +147,23 @@ export function DashboardContent({ user, profile, business, orders: initialOrder
             message: notificationMessage,
           })
         }
+
+        // Send SMS to customer for confirmed and ready statuses
+        if (newStatus === 'confirmed' || newStatus === 'ready') {
+          try {
+            await fetch('/api/notify/customer', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                orderId, 
+                notificationType: newStatus 
+              }),
+            })
+          } catch (smsError) {
+            console.error('[v0] Customer SMS error:', smsError)
+            // Don't fail the status update if SMS fails
+          }
+        }
       }
 
       toast.success(`Order marked as ${statusLabels[newStatus]}`)

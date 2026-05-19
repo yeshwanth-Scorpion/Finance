@@ -335,6 +335,18 @@ export default function RestaurantOrderPage({ params }: PageProps) {
         message: `Your order at ${restaurantName} has been placed successfully. We'll notify you when it's confirmed.`,
       })
 
+      // Send SMS notification to restaurant manager
+      try {
+        await fetch('/api/notify/restaurant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id, businessId }),
+        })
+      } catch (smsError) {
+        console.error('[v0] SMS notification error:', smsError)
+        // Don't fail the order if SMS fails
+      }
+
       toast.success('Order placed successfully!')
       router.push('/orders')
     } catch {
