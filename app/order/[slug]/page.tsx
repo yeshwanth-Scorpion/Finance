@@ -129,6 +129,8 @@ export default function RestaurantOrderPage({ params }: PageProps) {
   const [customerPhone, setCustomerPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<{ id: string } | null>(null)
+  const [businessId, setBusinessId] = useState<string | null>(null)
+  const [dbMenuItems, setDbMenuItems] = useState<{ id: string; name: string; description: string; price: number; category: string; prep_time_minutes: number }[]>([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -157,7 +159,51 @@ export default function RestaurantOrderPage({ params }: PageProps) {
     getUser()
   }, [supabase])
 
+  // Fetch business and menu items from database
+  useEffect(() => {
+    const fetchBusinessData = async () => {
+      if (!slug) return
+      
+      // Fetch business by slug
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('id, name, description, address')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single()
+      
+      if (business) {
+        setBusinessId(business.id)
+        
+        // Fetch menu items for this business
+        const { data: menuItems } = await supabase
+          .from('menu_items')
+          .select('id, name, description, price, category, prep_time_minutes')
+          .eq('business_id', business.id)
+          .eq('is_available', true)
+          .order('category')
+        
+        if (menuItems) {
+          setDbMenuItems(menuItems)
+        }
+      }
+    }
+    
+    fetchBusinessData()
+  }, [slug, supabase])
+
   const restaurant = menuData[slug]
+  
+  // Group database menu items by category
+  const groupedDbItems = dbMenuItems.reduce((acc, item) => {
+    const category = item.category || 'Other'
+    if (!acc[category]) acc[category] = []
+    acc[category].push(item)
+    return acc
+  }, {} as Record<string, typeof dbMenuItems>)
+
+  // Use database items if available, otherwise fall back to static menu
+  const useDbMenu = dbMenuItems.length > 0
 
   if (!slug) {
     return (
@@ -167,7 +213,7 @@ export default function RestaurantOrderPage({ params }: PageProps) {
     )
   }
 
-  if (!restaurant) {
+  if (!restaurant && !businessId) {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
@@ -234,16 +280,16 @@ export default function RestaurantOrderPage({ params }: PageProps) {
     setLoading(true)
 
     try {
-      // For demo purposes, we'll create the order with a dummy business_id
-      // In production, this would fetch the actual business ID from the database
-      const demoBusinessId = '00000000-0000-0000-0000-000000000001'
+      if (!businessId) {
+        throw new Error('Business not found')
+      }
       
-      // Create the order
+      // Create the order with the real business ID from database
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           customer_id: user.id,
-          business_id: demoBusinessId,
+          business_id: businessId,
           status: 'pending',
           pickup_time: new Date(pickupTime).toISOString(),
           total_amount: getCartTotal(),
@@ -255,19 +301,35 @@ export default function RestaurantOrderPage({ params }: PageProps) {
         .single()
 
       if (orderError) {
-        console.error('Order error:', orderError)
+        console.error('[v0] Order error:', orderError)
         throw new Error('Failed to create order')
       }
 
-      // For demo purposes, skip order items (they require real menu_item_ids)
-      // In production, you would insert order items here
+      // Insert order items with real menu_item_ids from database
+      const orderItems = cart.map(item => ({
+        order_id: order.id,
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        special_instructions: item.specialInstructions || null,
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems)
+
+      if (itemsError) {
+        console.error('[v0] Order items error:', itemsError)
+        // Don't throw - order was created, just items failed
+      }
 
       // Create notification for the customer
+      const restaurantName = restaurant?.name || slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
       await supabase.from('notifications').insert({
         user_id: user.id,
         order_id: order.id,
         title: 'Order Placed',
-        message: `Your order at ${restaurant.name} has been placed successfully. We'll notify you when it's confirmed.`,
+        message: `Your order at ${restaurantName} has been placed successfully. We'll notify you when it's confirmed.`,
       })
 
       toast.success('Order placed successfully!')
@@ -309,12 +371,12 @@ export default function RestaurantOrderPage({ params }: PageProps) {
               <ArrowLeft className="h-4 w-4" />
               Back to Restaurants
             </Link>
-            <h1 className="text-3xl font-bold">{restaurant.name}</h1>
-            <p className="text-muted-foreground mt-1">{restaurant.description}</p>
+            <h1 className="text-3xl font-bold">{restaurant?.name || slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h1>
+            <p className="text-muted-foreground mt-1">{restaurant?.description || 'Delicious food awaits'}</p>
             <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4" />
-                {restaurant.address}
+                {restaurant?.address || 'Richmond, QLD'}
               </span>
             </div>
           </div>
@@ -324,7 +386,48 @@ export default function RestaurantOrderPage({ params }: PageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Menu */}
             <div className="lg:col-span-2 space-y-8">
-              {restaurant.categories.map((category) => (
+              {useDbMenu ? (
+                // Database menu items
+                Object.entries(groupedDbItems).map(([categoryName, items]) => (
+                  <div key={categoryName}>
+                    <h2 className="text-xl font-semibold mb-4">{categoryName}</h2>
+                    <div className="space-y-3">
+                      {items.map((item) => (
+                        <Card key={item.id} className="overflow-hidden">
+                          <div className="flex items-center justify-between p-4">
+                            <div className="flex-1 pr-4">
+                              <h3 className="font-medium">{item.name}</h3>
+                              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="font-semibold text-terracotta">${Number(item.price).toFixed(2)}</span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {item.prep_time_minutes} min
+                                </span>
+                              </div>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              className="bg-terracotta hover:bg-terracotta/90"
+                              onClick={() => addToCart({ 
+                                id: item.id, 
+                                name: item.name, 
+                                description: item.description || '', 
+                                price: Number(item.price), 
+                                prepTime: item.prep_time_minutes 
+                              })}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : restaurant ? (
+                // Fallback static menu
+                restaurant.categories.map((category) => (
                 <div key={category.name}>
                   <h2 className="text-xl font-semibold mb-4">{category.name}</h2>
                   <div className="space-y-3">
@@ -354,7 +457,13 @@ export default function RestaurantOrderPage({ params }: PageProps) {
                     ))}
                   </div>
                 </div>
-              ))}
+              ))
+              ) : (
+                <div className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-terracotta mx-auto" />
+                  <p className="text-muted-foreground mt-2">Loading menu...</p>
+                </div>
+              )}
             </div>
 
             {/* Cart Sidebar */}
