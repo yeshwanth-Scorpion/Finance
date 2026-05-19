@@ -25,7 +25,8 @@ import {
   ChefHat,
   LogOut,
   MoreVertical,
-  User
+  User,
+  Truck
 } from 'lucide-react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -39,6 +40,7 @@ interface Order {
   notes: string | null
   customer_name: string | null
   customer_phone: string | null
+  is_priority: boolean
   created_at: string
   updated_at: string
 }
@@ -174,11 +176,19 @@ export function DashboardContent({ user, profile, business, orders: initialOrder
     const nextStatus = getNextStatus(order.status)
     
     return (
-      <Card className={`${order.status === 'pending' ? 'border-yellow-300 bg-yellow-50/50' : order.status === 'ready' ? 'border-green-300 bg-green-50/50' : ''}`}>
+      <Card className={`${order.is_priority ? 'border-terracotta border-2 ring-2 ring-terracotta/20' : ''} ${order.status === 'pending' ? 'border-yellow-300 bg-yellow-50/50' : order.status === 'ready' ? 'border-green-300 bg-green-50/50' : ''}`}>
+        {order.is_priority && (
+          <div className="bg-terracotta text-white px-3 py-1.5 text-xs font-semibold flex items-center gap-2">
+            <Truck className="h-3.5 w-3.5" />
+            TRUCKIE PRIORITY - Prepare First
+          </div>
+        )}
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle className="text-base">Order #{order.id.slice(0, 8)}</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                Order #{order.id.slice(0, 8)}
+              </CardTitle>
               <CardDescription className="text-xs">
                 {new Date(order.created_at).toLocaleTimeString('en-AU', {
                   hour: '2-digit',

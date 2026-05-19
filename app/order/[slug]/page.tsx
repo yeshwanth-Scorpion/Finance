@@ -20,7 +20,8 @@ import {
   MapPin, 
   ShoppingCart,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Truck
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -127,6 +128,7 @@ export default function RestaurantOrderPage({ params }: PageProps) {
   const [notes, setNotes] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
+  const [isPriority, setIsPriority] = useState(false)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [businessId, setBusinessId] = useState<string | null>(null)
@@ -296,6 +298,7 @@ export default function RestaurantOrderPage({ params }: PageProps) {
           notes,
           customer_name: customerName,
           customer_phone: customerPhone,
+          is_priority: isPriority,
         })
         .select()
         .single()
@@ -568,6 +571,47 @@ export default function RestaurantOrderPage({ params }: PageProps) {
                               placeholder="Any allergies or special requests?"
                               rows={2}
                             />
+                          </div>
+
+                          {/* Truckie Priority Pickup */}
+                          <div 
+                            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                              isPriority 
+                                ? 'border-terracotta bg-terracotta/5' 
+                                : 'border-border hover:border-terracotta/50'
+                            }`}
+                            onClick={() => setIsPriority(!isPriority)}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                isPriority ? 'bg-terracotta text-white' : 'bg-muted'
+                              }`}>
+                                <Truck className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="font-semibold text-sm">Truckie Priority Pickup</h4>
+                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                    isPriority ? 'border-terracotta bg-terracotta' : 'border-muted-foreground'
+                                  }`}>
+                                    {isPriority && (
+                                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Time-sensitive? We&apos;ll prioritise your order so it&apos;s ready faster when you pull in.
+                                </p>
+                                {isPriority && (
+                                  <span className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-terracotta">
+                                    <Clock className="h-3 w-3" />
+                                    Priority order - prepared first
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
                           {!user && (
