@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // This endpoint is called by Supabase webhook when a new order is created
 export async function POST(request: NextRequest) {
@@ -16,6 +17,43 @@ export async function POST(request: NextRequest) {
 
     const order = record;
     
+    // Initialize Supabase admin client to fetch order items
+    const supabase = createAdminClient();
+    
+    // Fetch order items with menu item names
+    const { data: orderItems, error: itemsError } = await supabase
+      .from("order_items")
+      .select(`
+        quantity,
+        unit_price,
+        special_instructions,
+        menu_items (
+          name,
+          description
+        )
+      `)
+      .eq("order_id", order.id);
+
+    if (itemsError) {
+      console.error("[v0] Error fetching order items:", itemsError);
+    }
+
+    // Format items list for kitchen
+    let itemsList = "No items found";
+    if (orderItems && orderItems.length > 0) {
+      itemsList = orderItems
+        .map((item: any) => {
+          const menuItem = item.menu_items;
+          const name = menuItem?.name || "Unknown item";
+          const qty = item.quantity || 1;
+          const instructions = item.special_instructions 
+            ? `\n   Note: ${item.special_instructions}` 
+            : "";
+          return `- ${qty}x ${name}${instructions}`;
+        })
+        .join("\n");
+    }
+
     // Initialize Twilio client
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -31,15 +69,20 @@ export async function POST(request: NextRequest) {
 
     const client = twilio(accountSid, authToken);
 
-    // Format the SMS message
-    const message = `New Order! 
+    // Format the SMS message with items for kitchen
+    const message = `🍳 KITCHEN ORDER #${order.id?.slice(0, 8)}
+
 Customer: ${order.customer_name || "Unknown"}
-Amount: $${order.total_amount || 0}
-Order ID: ${order.id}
-Status: ${order.status || "pending"}`;
+Type: ${order.order_type || "Dine-in"}
+${order.table_number ? `Table: ${order.table_number}` : ""}
+
+ITEMS TO PREPARE:
+${itemsList}
+
+Total: $${order.total_amount || 0}
+${order.notes ? `\nOrder Notes: ${order.notes}` : ""}`;
 
     // Send SMS to the business owner
-    // The phone number is stored in the profile, but for simplicity we use the known number
     const businessOwnerPhone = "+61457089774";
 
     await client.messages.create({
@@ -48,11 +91,11 @@ Status: ${order.status || "pending"}`;
       to: businessOwnerPhone,
     });
 
-    console.log("[v0] SMS sent successfully for order:", order.id);
+    console.log("[v0] Kitchen SMS sent for order:", order.id);
 
     return NextResponse.json({ 
       success: true, 
-      message: "SMS notification sent" 
+      message: "Kitchen notification sent" 
     });
   } catch (error) {
     console.error("[v0] Error sending SMS:", error);
